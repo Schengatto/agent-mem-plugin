@@ -1,0 +1,48 @@
+# MemoryMesh — line-ending / binary attributes
+#
+# Obiettivo: garantire che i file eseguiti all'interno dei container Linux
+# (shell script, SQL loaded da init-db, Dockerfile, YAML, Makefile) siano SEMPRE
+# checkoutati con LF anche su macchine sviluppatore Windows. Evita il bug
+# "cannot execute: required file not found" causato da shebang CRLF.
+#
+# Riferimento: si è verificato in F1-03 — init-roles.sh montato nel container
+# postgres falliva per CRLF del checkout Windows.
+
+* text=auto eol=lf
+
+# ─── Binari (no eol conversion) ────────────────────────────────────────
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+
+# ─── Script shell / Dockerfile / infra: LF OBBLIGATORIO ────────────────
+*.sh         text eol=lf
+*.bash       text eol=lf
+*.zsh        text eol=lf
+Dockerfile   text eol=lf
+*.Dockerfile text eol=lf
+Makefile     text eol=lf
+*.mk         text eol=lf
+
+# ─── YAML / TOML / JSON di config ──────────────────────────────────────
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.toml  text eol=lf
+*.json  text eol=lf
+
+# ─── SQL caricato dai container (psql ha quirks con dollar-quoted CRLF) ─
+*.sql   text eol=lf
+
+# ─── Caddyfile ─────────────────────────────────────────────────────────
+Caddyfile      text eol=lf
+Caddyfile.prod text eol=lf
+
+# ─── Env / .gitignore / .github workflows ──────────────────────────────
+.env*        text eol=lf
+.gitignore   text eol=lf

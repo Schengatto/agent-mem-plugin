@@ -41,7 +41,12 @@ services:
       MM_WORKER_PASSWORD: ${PG_MM_WORKER_PASSWORD:?set PG_MM_WORKER_PASSWORD}
       MM_ADMIN_PASSWORD: ${PG_MM_ADMIN_PASSWORD:?set PG_MM_ADMIN_PASSWORD}
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      # pg18+: il container memorizza i dati in /var/lib/postgresql/<major>/
+      # (subdirectory major-version-specific), quindi il mount deve essere
+      # sulla root /var/lib/postgresql, non su /data. Vedi
+      # docker-library/postgres#1259 — permette pg_upgrade --link senza
+      # boundary issue con i mount.
+      - pg_data:/var/lib/postgresql
       # Init scripts eseguiti in ordine alfabetico al primo avvio
       - ./api/init-roles.sh:/docker-entrypoint-initdb.d/00-init-roles.sh:ro
       - ./api/init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql:ro
