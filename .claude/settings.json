@@ -10,7 +10,16 @@
       "Bash(sed -i 's/^PG_MM_WORKER_PASSWORD=.*/PG_MM_WORKER_PASSWORD=ci/' /tmp/mm-ci.env)",
       "Bash(sed -i 's/^PG_MM_ADMIN_PASSWORD=.*/PG_MM_ADMIN_PASSWORD=ci/' /tmp/mm-ci.env)",
       "Bash(docker compose *)",
-      "Bash(echo \"---exit $?---\")"
+      "Bash(echo \"---exit $?---\")",
+      "Bash(git checkout *)",
+      "Bash(git stash *)",
+      "Bash(sed -i 's/CHANGE_ME.*/ci_placeholder_value_only_for_config_validation/g' /tmp/mm-ci.env)",
+      "Bash(echo \"ADMIN_EMAIL=ci@example.invalid\")",
+      "Bash(echo \"MEMORYMESH_HOSTNAME=ci.example.invalid\")",
+      "Bash(python -c ' *)",
+      "Bash(chmod +x scripts/test-compose.sh)",
+      "Bash(bash scripts/test-compose.sh)",
+      "Bash(make compose-check *)"
     ]
   }
 }
