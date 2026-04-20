@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────
+  # Secret scanning: blocca qualunque PR che contenga secret.
+  # Il full security pipeline (pip-audit, npm audit, trivy, SBOM) arriva
+  # in F12-03. Qui teniamo solo il minimo indispensabile.
+  # ─────────────────────────────────────────────────────────────────────
+  gitleaks:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Compose validation: verifica che docker-compose sia sintatticamente
+  # valido. Utile già in Sprint 1 quando non c'è ancora codice applicativo.
+  # ─────────────────────────────────────────────────────────────────────
+  compose-validate:
+    name: docker compose config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare .env for compose validation
+        run: |
+          cp .env.example .env
+          # Popola i required (`:?`) con placeholder per non bloccare il parse.
+          sed -i 's/^PG_ADMIN_PASSWORD=.*/PG_ADMIN_PASSWORD=ci-placeholder/' .env
+          sed -i 's/^PG_MM_API_PASSWORD=.*/PG_MM_API_PASSWORD=ci-placeholder/' .env
+          sed -i 's/^PG_MM_WORKER_PASSWORD=.*/PG_MM_WORKER_PASSWORD=ci-placeholder/' .env
+          sed -i 's/^PG_MM_ADMIN_PASSWORD=.*/PG_MM_ADMIN_PASSWORD=ci-placeholder/' .env
+          sed -i 's/^REDIS_PASSWORD=.*/REDIS_PASSWORD=ci-placeholder/' .env
+          sed -i 's/^SECRET_KEY=.*/SECRET_KEY=ci-placeholder-32-bytes-hex-zzzzzzzzzzzzzz/' .env
+      - name: Validate base compose
+        run: docker compose --env-file .env config --quiet
+      - name: Validate prod override compose
+        run: docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml config --quiet
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Placeholder: si attivano quando api/app (Python) e plugin/ (Node)
+  # avranno codice. Oggi sono no-op che passano.
+  # ─────────────────────────────────────────────────────────────────────
+  python-lint:
+    name: Python lint (placeholder)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip if api/app/ not yet scaffolded
+        run: |
+          if [ ! -d api/app ]; then
+            echo "api/app/ non ancora presente — skip (atteso fino a F2-01)."
+            exit 0
+          fi
+          echo "TODO: aggiungere ruff/mypy quando F2-01 scaffolda api/app/."
+
+  node-lint:
+    name: Node lint (placeholder)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip if plugin/ not yet scaffolded
+        run: |
+          if [ ! -d plugin/packages ]; then
+            echo "plugin/packages/ non ancora presente — skip (atteso fino a F7a-01)."
+            exit 0
+          fi
+          echo "TODO: aggiungere eslint/tsc quando F7a-01 scaffolda il monorepo."

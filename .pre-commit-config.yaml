@@ -1,0 +1,29 @@
+# Pre-commit hook di Sprint 1: secret scanning locale prima di ogni commit.
+# Installazione (una-tantum per dev, dopo `pip install pre-commit`):
+#   pre-commit install
+# Scan manuale full repo:
+#   pre-commit run --all-files
+#
+# Le pipeline piu' complete (pip-audit, npm audit, trivy, SBOM) sono in CI
+# e verranno formalizzate in F12-03.
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+        name: gitleaks (secret scan)
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: [--fix=lf]

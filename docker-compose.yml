@@ -1,0 +1,279 @@
+# MemoryMesh — docker-compose.yml (base, profile=lan)
+#
+# Avvio:  make up
+# Deploy PUBLIC/VPN: usa anche docker-compose.prod.yml come override
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Profile-aware: la variabile MEMORYMESH_DEPLOYMENT (lan|vpn|public) attiva
+# controlli differenti lato app (HSTS, rate limit, fail2ban jail, ecc.).
+
+name: memorymesh
+
+# ─── Reti ───────────────────────────────────────────────────────────────────
+networks:
+  mm_ingress:
+    driver: bridge
+  mm_internal:
+    driver: bridge
+    internal: true   # nessun egress internet default (eccetto Ollama pull iniziale)
+
+# ─── Volumi ─────────────────────────────────────────────────────────────────
+volumes:
+  pg_data:        # dati PostgreSQL (osservazioni, vocab, admin, ecc.)
+  redis_data:     # Redis RDB snapshot
+  ollama_models:  # nomic-embed + Qwen3 cached
+  caddy_data:     # Let's Encrypt cert + state (per profile vpn/public)
+  caddy_config:
+
+services:
+  # ─── PostgreSQL con pgvector ────────────────────────────────────────────
+  # NOTA: pin by digest in prod (vedi DEPENDENCIES.md). pgvector 0.8.2 è
+  # OBBLIGATORIO per fix CVE-2026-3172 (buffer overflow parallel HNSW build).
+  postgres:
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: memorymesh
+      POSTGRES_USER: ${PG_ADMIN_USER:-postgres}
+      POSTGRES_PASSWORD: ${PG_ADMIN_PASSWORD:?set PG_ADMIN_PASSWORD in .env}
+      # Password per i tre application user (read da env in init-db.sql)
+      MM_API_PASSWORD: ${PG_MM_API_PASSWORD:?set PG_MM_API_PASSWORD}
+      MM_WORKER_PASSWORD: ${PG_MM_WORKER_PASSWORD:?set PG_MM_WORKER_PASSWORD}
+      MM_ADMIN_PASSWORD: ${PG_MM_ADMIN_PASSWORD:?set PG_MM_ADMIN_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      # Init scripts eseguiti in ordine alfabetico al primo avvio
+      - ./api/init-roles.sh:/docker-entrypoint-initdb.d/00-init-roles.sh:ro
+      - ./api/init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql:ro
+    networks: [mm_internal]
+    # NO ports — non esposta fuori dal Docker bridge
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${PG_ADMIN_USER:-postgres} -d memorymesh']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # Hardening (applicabile anche su LAN)
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID]  # minimi per postgres
+
+  # ─── Redis (queue, cache, bloom filter NATIVO BF.*, rate limit) ─────────
+  # Redis 8.6: bloom/cuckoo filter built-in (sostituisce pybloom-live), TLS auth,
+  # vector ops AArch64. Vedi ADR-004 in DEPENDENCIES.md.
+  redis:
+    image: redis:8.6-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+    volumes:
+      - redis_data:/data
+    networks: [mm_internal]
+    healthcheck:
+      test: ['CMD', 'redis-cli', '--no-auth-warning', '-a', '${REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: ['/tmp:size=32M']
+
+  # ─── Ollama — OPZIONALE (profile=B o C, privacy-strict) ────────────────
+  # Attivo solo se: docker compose --profile ollama up
+  # Con default (Profile A cloud), Ollama NON viene avviato.
+  # Vedi DEPENDENCIES.md ADR-014 per decisione Gemini default.
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    profiles: [ollama]
+    environment:
+      OLLAMA_MAX_LOADED_MODELS: '1'
+      OLLAMA_KEEP_ALIVE: '5m'
+      OLLAMA_HOST: '0.0.0.0:11434'
+    volumes:
+      - ollama_models:/root/.ollama
+    networks: [mm_internal]
+    healthcheck:
+      test: ['CMD-SHELL', 'ollama list >/dev/null 2>&1 || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    security_opt:
+      - no-new-privileges:true
+
+  # ─── API FastAPI (+ static Nuxt admin UI su /admin/*) ────────────────────
+  api:
+    image: memorymesh/api:${VERSION:-dev}
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      target: runtime
+    restart: unless-stopped
+    environment:
+      # Deployment profile (auto-attiva HSTS, rate limit, ecc.)
+      MEMORYMESH_DEPLOYMENT: ${MEMORYMESH_DEPLOYMENT:-lan}
+      # DB — usa l'utente mm_api (limitato)
+      DATABASE_URL: postgresql://mm_api:${PG_MM_API_PASSWORD}@postgres:5432/memorymesh
+      DATABASE_ADMIN_URL: postgresql://mm_admin:${PG_MM_ADMIN_PASSWORD}@postgres:5432/memorymesh
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      # Ollama — solo se usato (profile B/C)
+      OLLAMA_URL: http://ollama:11434
+      # LLM + Embedding provider (ADR-014, 015)
+      MEMORYMESH_LLM_PROVIDER: ${MEMORYMESH_LLM_PROVIDER:-gemini}
+      MEMORYMESH_LLM_MODEL: ${MEMORYMESH_LLM_MODEL:-gemini-2.5-flash}
+      MEMORYMESH_EMBED_PROVIDER: ${MEMORYMESH_EMBED_PROVIDER:-gemini}
+      MEMORYMESH_EMBED_MODEL: ${MEMORYMESH_EMBED_MODEL:-text-embedding-004}
+      # API key cloud providers (solo quelli usati effettivamente)
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Budget cap (ADR-016)
+      MEMORYMESH_LLM_DAILY_TOKEN_CAP: ${MEMORYMESH_LLM_DAILY_TOKEN_CAP:-500000}
+      # Crittografia (key derivation HKDF per purpose distinti)
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY (openssl rand -hex 32) in .env}
+      # Feature flag
+      SEARCH_RERANK_ENABLED: ${SEARCH_RERANK_ENABLED:-true}
+      VOCAB_EXTRACT_ENABLED: ${VOCAB_EXTRACT_ENABLED:-true}
+      FP_LOGGING_ENABLED: ${FP_LOGGING_ENABLED:-false}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+      # NOTA: Ollama NON è dipendenza mandatoria. L'api valida al boot che il
+      # provider configurato sia raggiungibile (Gemini → internet; Ollama → service).
+    networks: [mm_internal]
+    # NO ports — solo Caddy come ingress
+    healthcheck:
+      test: ['CMD', 'python', '-c', "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    # Hardening (vedi SECURITY.md §10)
+    user: '1000:1000'
+    read_only: true
+    tmpfs:
+      - '/tmp:size=64M,mode=1777'
+      - '/app/cache:size=128M'
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./security/seccomp.json
+    mem_limit: 512m
+    pids_limit: 200
+    ulimits:
+      nproc: 200
+      nofile: 4096
+    command: ['uvicorn', 'app.main:app', '--host', '0.0.0.0', '--port', '8000', '--workers', '2']
+
+  # ─── Embedding Worker (consumer Redis Stream) ───────────────────────────
+  embed-worker:
+    image: memorymesh/api:${VERSION:-dev}
+    build: { context: ./api, dockerfile: Dockerfile, target: runtime }
+    restart: unless-stopped
+    environment:
+      MEMORYMESH_DEPLOYMENT: ${MEMORYMESH_DEPLOYMENT:-lan}
+      DATABASE_URL: postgresql://mm_worker:${PG_MM_WORKER_PASSWORD}@postgres:5432/memorymesh
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      OLLAMA_URL: http://ollama:11434
+      # Embed provider config (inherits da api service)
+      MEMORYMESH_EMBED_PROVIDER: ${MEMORYMESH_EMBED_PROVIDER:-gemini}
+      MEMORYMESH_EMBED_MODEL: ${MEMORYMESH_EMBED_MODEL:-text-embedding-004}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      SECRET_KEY: ${SECRET_KEY}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    networks: [mm_internal]
+    user: '1000:1000'
+    read_only: true
+    tmpfs: ['/tmp:size=32M']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 384m
+    command: ['python', '-m', 'app.workers.embedding']
+
+  # ─── Distillation Worker (CRON 03:00, Qwen3 on-demand) ──────────────────
+  distillation-worker:
+    image: memorymesh/api:${VERSION:-dev}
+    build: { context: ./api, dockerfile: Dockerfile, target: runtime }
+    restart: unless-stopped
+    environment:
+      MEMORYMESH_DEPLOYMENT: ${MEMORYMESH_DEPLOYMENT:-lan}
+      DATABASE_URL: postgresql://mm_worker:${PG_MM_WORKER_PASSWORD}@postgres:5432/memorymesh
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      OLLAMA_URL: http://ollama:11434
+      # LLM provider config (inherits da api)
+      MEMORYMESH_LLM_PROVIDER: ${MEMORYMESH_LLM_PROVIDER:-gemini}
+      MEMORYMESH_LLM_MODEL: ${MEMORYMESH_LLM_MODEL:-gemini-2.5-flash}
+      MEMORYMESH_EMBED_PROVIDER: ${MEMORYMESH_EMBED_PROVIDER:-gemini}
+      MEMORYMESH_EMBED_MODEL: ${MEMORYMESH_EMBED_MODEL:-text-embedding-004}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      MEMORYMESH_LLM_DAILY_TOKEN_CAP: ${MEMORYMESH_LLM_DAILY_TOKEN_CAP:-500000}
+      SECRET_KEY: ${SECRET_KEY}
+      DISTILLATION_CRON: ${DISTILLATION_CRON:-0 3 * * *}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    networks: [mm_internal]
+    user: '1000:1000'
+    read_only: true
+    tmpfs: ['/tmp:size=64M']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 384m   # Con Gemini cloud, orchestrator leggero. Se Ollama+Qwen locale: il modello gira in container ollama.
+    command: ['python', '-m', 'app.workers.distillation']
+
+  # ─── Caddy reverse proxy (TLS opzionale, unico ingress) ─────────────────
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '${CADDY_HTTP_PORT:-80}:80'
+      - '${CADDY_HTTPS_PORT:-443}:443'
+    environment:
+      MEMORYMESH_HOSTNAME: ${MEMORYMESH_HOSTNAME:-mm.local}
+      MEMORYMESH_DEPLOYMENT: ${MEMORYMESH_DEPLOYMENT:-lan}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api: { condition: service_healthy }
+    networks: [mm_ingress, mm_internal]
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:80/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]   # legare porte < 1024
+    security_opt: [no-new-privileges:true]
+
+  # ─── Avahi (mDNS broadcaster LAN, opzionale) ────────────────────────────
+  # Annuncia _memorymesh._tcp.local per zero-touch discovery.
+  # Disabilitato di default su profile=public (mDNS non raggiunge oltre la LAN).
+  avahi:
+    image: ydkn/avahi:latest
+    restart: unless-stopped
+    network_mode: host     # mDNS richiede multicast sull'host network
+    volumes:
+      - /var/run/dbus:/var/run/dbus:ro
+      - ./security/avahi-memorymesh.service:/etc/avahi/services/memorymesh.service:ro
+    environment:
+      AVAHI_REFLECTOR: 'no'
+    profiles: [lan, vpn]   # non attivato su profile=public
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE, NET_RAW]

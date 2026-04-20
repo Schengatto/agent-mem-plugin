@@ -1,0 +1,193 @@
+# MemoryMesh — Caddyfile.prod (profile=vpn o public)
+#
+# Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Richiede:
+#   MEMORYMESH_HOSTNAME (es. mm.example.com)
+#   ADMIN_EMAIL (per Let's Encrypt ACME account)
+
+{
+    storage file_system /data
+    admin localhost:2019
+
+    # Let's Encrypt account
+    email {env.ADMIN_EMAIL}
+
+    # TLS 1.3 only — profilo public
+    servers {
+        protocols h1 h2 h3
+        strict_sni_host on
+    }
+
+    log default {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+# ─── Redirect HTTP → HTTPS (HSTS-friendly) ──────────────────────────────
+http://{env.MEMORYMESH_HOSTNAME} {
+    # Let's Encrypt challenge resta su HTTP
+    @acme path /.well-known/acme-challenge/*
+    handle @acme {
+        reverse_proxy caddy:80
+    }
+    # Tutto il resto: 301 → HTTPS
+    redir https://{host}{uri} permanent
+}
+
+# ─── HTTPS server principale ────────────────────────────────────────────
+https://{env.MEMORYMESH_HOSTNAME} {
+    # Log access strutturato JSON, friendly per fail2ban/Loki
+    log {
+        output file /var/log/memorymesh/access.log {
+            roll_size 50mb
+            roll_keep 10
+        }
+        format json
+    }
+
+    # TLS config (auto-managed via ACME)
+    tls {
+        protocols tls1.3
+        curves x25519 secp384r1
+    }
+
+    # ─── Security Headers (profile public) ──────────────────────────────
+    header {
+        # HSTS preload (max-age 1 anno)
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), usb=()"
+        Cross-Origin-Opener-Policy "same-origin"
+        Cross-Origin-Resource-Policy "same-origin"
+        # CSP: il nonce viene settato dall'app in base al path (/admin/* vs /api/*)
+        # Caddy lascia pass-through, il middleware FastAPI inserisce il header
+        # specifico per /admin/*. Per le altre rotte lo impostiamo qui.
+        ?Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+        -Server
+        -X-Powered-By
+    }
+
+    # ─── Rate limiting globale (richiede plugin caddy-ratelimit) ────────
+    # Abilitato solo in prod. Requisito: Caddy build con
+    # github.com/mholt/caddy-ratelimit plugin.
+    #
+    # rate_limit {
+    #     zone public_global {
+    #         key {remote_host}
+    #         events 300
+    #         window 1m
+    #     }
+    #     zone admin_login {
+    #         match {
+    #             path /admin/login
+    #             path /admin/setup
+    #         }
+    #         key {remote_host}
+    #         events 5
+    #         window 1m
+    #     }
+    #     zone api_pair {
+    #         match { path /api/v1/pair }
+    #         key {remote_host}
+    #         events 10
+    #         window 15m
+    #     }
+    # }
+
+    # ─── /.well-known/acme-challenge — Let's Encrypt ────────────────────
+    # Gestito automaticamente da Caddy in modalità auto_https
+
+    # ─── /health (liveness public, rate limit aggressivo in prod) ───────
+    @health path /health
+    handle @health {
+        reverse_proxy api:8000 {
+            header_up X-Real-IP {remote_host}
+            # Limit body e header size a liveness
+            flush_interval -1
+        }
+    }
+
+    # ─── /health/detail: hidden (404) fuori LAN anche in public ────────
+    @health_detail path /health/detail
+    handle @health_detail {
+        @not_lan not remote_ip private_ranges
+        respond @not_lan "Not Found" 404
+        reverse_proxy api:8000
+    }
+
+    # ─── /admin/* asset statici (SPA Nuxt) ──────────────────────────────
+    @admin_static {
+        path /admin/_nuxt/*
+        path /admin/favicon*
+        path /admin/manifest.webmanifest
+    }
+    handle @admin_static {
+        root * /static
+        file_server { precompressed br gzip }
+        header Cache-Control "public, max-age=31536000, immutable"
+    }
+
+    # ─── /admin/* API (POST/PUT/PATCH/DELETE) ───────────────────────────
+    @admin_api {
+        path_regexp /admin/(?!_nuxt|favicon|manifest\.webmanifest).*
+        method POST PUT PATCH DELETE
+    }
+    handle @admin_api {
+        reverse_proxy api:8000 {
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto https
+        }
+    }
+
+    # ─── /admin/* GET — SPA fallback ────────────────────────────────────
+    @admin_spa {
+        path /admin/*
+        method GET
+    }
+    handle @admin_spa {
+        root * /static
+        try_files {path} /index.html
+        file_server
+        header Cache-Control "no-cache, no-store, must-revalidate"
+    }
+
+    # ─── /api/v1/* data plane ───────────────────────────────────────────
+    @api_data path /api/v1/*
+    handle @api_data {
+        # Payload size limit stricter in prod
+        request_body {
+            max_size 1MB
+        }
+        reverse_proxy api:8000 {
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto https
+        }
+    }
+
+    # ─── /mcp/* — MCP tools ─────────────────────────────────────────────
+    @mcp path /mcp/*
+    handle @mcp {
+        reverse_proxy api:8000
+    }
+
+    # ─── Block everything else with 404 (don't leak SPA to non-admin) ──
+    handle {
+        respond "Not Found" 404
+    }
+
+    # Error handling — non leakare dettagli backend
+    handle_errors {
+        @5xx expression `{http.error.status_code} >= 500 && {http.error.status_code} < 600`
+        handle @5xx {
+            respond "Service Unavailable" 503
+        }
+    }
+}

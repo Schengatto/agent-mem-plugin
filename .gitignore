@@ -1,0 +1,75 @@
+# ─── Secrets & environment ─────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+!pair_challenge.example.key
+
+# ─── Python ────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.egg-info/
+dist/
+build/
+pip-wheel-metadata/
+
+# ─── Node / TypeScript ─────────────────────────────────────────────────
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+*.tsbuildinfo
+.next/
+.nuxt/
+.output/
+.vite/
+dist-ts/
+
+# ─── Editors & OS ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+*.iml
+
+# ─── Docker / data volumes locali (se mount bind) ──────────────────────
+pg_data/
+redis_data/
+ollama_models/
+caddy_data/
+caddy_config/
+
+# ─── Logs / telemetry / buffer ─────────────────────────────────────────
+*.log
+logs/
+.memorymesh/
+**/device.json
+!**/device.json.example
+
+# ─── Build artifacts UI (Nuxt → api/app/static) ────────────────────────
+api/app/static/
+
+# ─── Test output ───────────────────────────────────────────────────────
+test-results/
+playwright-report/
+e2e-results/
+
+# ─── Claude Code / agenti locali ───────────────────────────────────────
+.claude/settings.local.json

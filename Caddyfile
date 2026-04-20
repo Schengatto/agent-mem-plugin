@@ -1,0 +1,151 @@
+# MemoryMesh — Caddyfile (base, profile=lan)
+#
+# Serve:
+#   /static/*         → asset SPA Nuxt (build → api/app/static/_nuxt/)
+#   /admin/*          → API admin + SPA fallback (index.html per client-side routing)
+#   /api/v1/*         → API data plane
+#   /mcp/*            → MCP tool endpoints
+#   /health           → liveness (public, rate-limited)
+#   /health/detail    → readiness (LAN-only o auth)
+#   /.well-known/*    → Let's Encrypt challenge (se abiliti HTTPS)
+#
+# Variabili env:
+#   {env.MEMORYMESH_HOSTNAME}  default mm.local
+#   {env.MEMORYMESH_DEPLOYMENT} lan|vpn|public
+#
+# Per profile=vpn/public usa Caddyfile.prod via docker-compose.prod.yml
+
+{
+    # Storage stato Caddy (Let's Encrypt se usato)
+    storage file_system /data
+
+    # Admin API Caddy bindata solo a localhost del container (gestita via API)
+    admin localhost:2019
+
+    # Log format strutturato JSON (parser-friendly per fail2ban)
+    log default {
+        output stdout
+        format json
+        level INFO
+    }
+
+    # Default: NO HTTPS auto. Per LAN il flow è HTTP. In prod override.
+    auto_https off
+}
+
+# ─── Listener principale ────────────────────────────────────────────────
+:80 {
+    # Log access (JSON, con IP reale)
+    log {
+        output stdout
+        format json
+    }
+
+    # ─── Rate limiting globale per IP ───────────────────────────────────
+    # Usa plugin caddy-ratelimit (vedi Dockerfile Caddy custom se serve)
+    # Su LAN: limite generoso. Prod: vedi Caddyfile.prod.
+    #
+    # rate_limit {
+    #     zone global_ip { key {remote_host}  events 1000  window 1m }
+    # }
+
+    # ─── Security Headers (sempre) ──────────────────────────────────────
+    header {
+        # Prevent content type sniffing
+        X-Content-Type-Options "nosniff"
+        # Prevent clickjacking (in aggiunta a CSP frame-ancestors)
+        X-Frame-Options "DENY"
+        # Referrer policy conservativa
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Blocca API device accesso sensibile
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), usb=()"
+        # Rimuove header che leakano info server
+        -Server
+        -X-Powered-By
+    }
+
+    # ─── /health: liveness rate-limited (public) ────────────────────────
+    @health path /health
+    handle @health {
+        reverse_proxy api:8000
+    }
+
+    # ─── /health/detail: solo LAN (private IP), altrimenti 404 ─────────
+    @health_detail path /health/detail
+    @not_lan not remote_ip private_ranges
+    handle @health_detail {
+        @public_ipd {
+            not remote_ip private_ranges
+        }
+        respond @public_ipd "Not Found" 404
+        reverse_proxy api:8000
+    }
+
+    # ─── /admin/*: SPA + API admin ──────────────────────────────────────
+    # Per le rotte admin che iniziano con /admin/ ma sono file statici della SPA,
+    # Caddy prova prima il file sulla disk (index.html + asset), fallback API.
+    @admin_static {
+        path /admin/_nuxt/*
+        path /admin/favicon*
+        path /admin/manifest.webmanifest
+    }
+    handle @admin_static {
+        root * /static
+        file_server {
+            # Subresource Integrity-friendly
+            precompressed br gzip
+        }
+        header Cache-Control "public, max-age=31536000, immutable"
+    }
+
+    # Rotte API dell'admin plane (prefisso /admin/ ma NON asset statici)
+    @admin_api {
+        path_regexp /admin/(?!_nuxt|favicon|manifest\.webmanifest).*
+        method POST PUT PATCH DELETE
+    }
+    handle @admin_api {
+        reverse_proxy api:8000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Rotte GET /admin/* che non sono asset: servono la SPA (index.html)
+    @admin_spa {
+        path /admin/*
+        method GET
+    }
+    handle @admin_spa {
+        # Serve prima /static/index.html. Tutti i path /admin/* client-side
+        # routed dalla SPA.
+        root * /static
+        try_files {path} /index.html
+        file_server
+        header Cache-Control "no-cache, no-store, must-revalidate"
+    }
+
+    # ─── /api/v1/* — data plane ─────────────────────────────────────────
+    @api_data path /api/v1/*
+    handle @api_data {
+        reverse_proxy api:8000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # ─── /mcp/* — MCP tools (agent-facing) ─────────────────────────────
+    @mcp path /mcp/*
+    handle @mcp {
+        reverse_proxy api:8000
+    }
+
+    # ─── Fallback ───────────────────────────────────────────────────────
+    # Root / e qualunque altro path sconosciuto: 404 (non espone la SPA a non-admin)
+    handle {
+        respond "Not Found" 404
+    }
+}

@@ -1,0 +1,84 @@
+# MemoryMesh — docker-compose.prod.yml (override per profile=vpn o public)
+#
+# Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Differenze rispetto al base:
+#   - Caddyfile.prod montato (TLS obbligatorio, HSTS, TLS 1.3 only, fail2ban log format)
+#   - fail2ban sidecar attivo
+#   - Resource limits più stretti
+#   - Solo porta 443 esposta (80 → redirect 301 via Caddy)
+#   - MEMORYMESH_DEPLOYMENT default = public (override con env)
+#   - avahi NON avviato (profile non include)
+
+name: memorymesh
+
+services:
+  api:
+    environment:
+      MEMORYMESH_DEPLOYMENT: ${MEMORYMESH_DEPLOYMENT:-public}
+    # Resource limits più stretti in prod
+    mem_limit: 384m
+    cpus: 1.5
+    # Log aggregation friendly
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+  embed-worker:
+    environment:
+      MEMORYMESH_DEPLOYMENT: ${MEMORYMESH_DEPLOYMENT:-public}
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+
+  distillation-worker:
+    environment:
+      MEMORYMESH_DEPLOYMENT: ${MEMORYMESH_DEPLOYMENT:-public}
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+
+  caddy:
+    volumes:
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      MEMORYMESH_HOSTNAME: ${MEMORYMESH_HOSTNAME:?set MEMORYMESH_HOSTNAME for TLS}
+      MEMORYMESH_DEPLOYMENT: ${MEMORYMESH_DEPLOYMENT:-public}
+      # Email richiesta da Let's Encrypt
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?set ADMIN_EMAIL for Let's Encrypt}
+    ports:
+      # In prod espone SOLO 443. Caddy redirige 80→443 per HSTS.
+      - '80:80'
+      - '443:443'
+    logging:
+      driver: json-file
+      options: { max-size: '20m', max-file: '5' }
+
+  # ─── fail2ban (jail per /admin/login e /api/v1/pair brute force) ────────
+  fail2ban:
+    image: crazymax/fail2ban:latest
+    restart: unless-stopped
+    network_mode: host     # richiede iptables diretto per banning
+    cap_add: [NET_ADMIN, NET_RAW]
+    volumes:
+      - ./security/fail2ban:/data                    # jail.local, filters
+      - caddy_data:/caddy-logs:ro                    # legge access log Caddy
+      - /var/log/memorymesh:/var/log/memorymesh:ro
+    environment:
+      TZ: ${TZ:-UTC}
+      F2B_LOG_LEVEL: INFO
+    depends_on:
+      caddy: { condition: service_healthy }
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+
+  # Avahi esplicitamente disabilitato in prod (mDNS non raggiunge pubblico)
+  avahi:
+    profiles: ['__disabled__']

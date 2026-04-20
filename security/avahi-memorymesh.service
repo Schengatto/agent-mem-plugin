@@ -1,0 +1,21 @@
+<?xml version="1.0" standalone='no'?>
+<!--
+  MemoryMesh mDNS service definition for avahi-daemon.
+  Mounted in docker-compose.yml:
+    ./security/avahi-memorymesh.service:/etc/avahi/services/memorymesh.service:ro
+
+  Annuncia il servizio sulla LAN come _memorymesh._tcp.local.
+  Il plugin Claude Code e l'adapter Codex fanno mDNS browse e trovano il server.
+-->
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+
+<service-group>
+  <name replace-wildcards="yes">MemoryMesh on %h</name>
+
+  <service>
+    <type>_memorymesh._tcp</type>
+    <port>80</port>
+    <txt-record>version=1.0</txt-record>
+    <txt-record>service=memorymesh</txt-record>
+  </service>
+</service-group>

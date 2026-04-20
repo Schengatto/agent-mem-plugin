@@ -1,0 +1,172 @@
+{
+  "_comment": [
+    "MemoryMesh seccomp profile — blocklist più stringente del Docker default.",
+    "",
+    "APPROCCIO: parte da defaultAction=SCMP_ACT_ALLOW (pragmatic, simile a Docker default",
+    "che lascia passare ~300 syscall comuni) e BLOCCA esplicitamente i syscall",
+    "pericolosi che MemoryMesh non usa. Nessun runtime behavior di una web app Python",
+    "standard richiede questi syscall.",
+    "",
+    "EVOLUZIONE: per un hardening più aggressivo, passare a defaultAction=SCMP_ACT_ERRNO",
+    "e enumerare esplicitamente tutti i syscall consentiti (allowlist). Richiede test",
+    "approfonditi perché Python/asyncpg/uvloop usano clock_nanosleep, futex, epoll_*,",
+    "sendmmsg, ecc. che non sono ovvi.",
+    "",
+    "TEST:  docker run --security-opt seccomp=./security/seccomp.json memorymesh/api",
+    "       → verifica che `make test` passi."
+  ],
+  "defaultAction": "SCMP_ACT_ALLOW",
+  "architectures": [
+    "SCMP_ARCH_X86_64",
+    "SCMP_ARCH_X86",
+    "SCMP_ARCH_X32",
+    "SCMP_ARCH_AARCH64"
+  ],
+  "syscalls": [
+    {
+      "_comment": "Kernel module load/unload — kernel-level RCE vector",
+      "names": [
+        "init_module",
+        "finit_module",
+        "delete_module",
+        "query_module",
+        "create_module"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "_comment": "BPF — eBPF program load, potential container escape",
+      "names": ["bpf"],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "_comment": "Kernel exec replace — reboot into attacker kernel",
+      "names": ["kexec_load", "kexec_file_load"],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "_comment": "Reboot / kernel power management — DoS vector",
+      "names": ["reboot"],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "_comment": "Debugger/ptrace — leak memoria processi adjacent",
+      "names": [
+        "ptrace",
+        "process_vm_readv",
+        "process_vm_writev"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "_comment": "Namespace/mount manipulation — container escape",
+      "names": [
+        "mount",
+        "umount",
+        "umount2",
+        "unshare",
+        "setns",
+        "pivot_root",
+        "mount_setattr",
+        "open_tree",
+        "move_mount",
+        "fsopen",
+        "fsmount"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "_comment": "Time manipulation — used in exploit chains, logs tampering",
+      "names": [
+        "settimeofday",
+        "stime",
+        "adjtimex",
+        "clock_adjtime",
+        "clock_settime"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "_comment": "Personality/ASLR disabling — used in exploit bypass",
+      "names": ["personality"],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "_comment": "Memory policy (NUMA) — not needed for single-container app",
+      "names": [
+        "mbind",
+        "set_mempolicy",
+        "get_mempolicy",
+        "migrate_pages",
+        "move_pages"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "_comment": "Swap control — power user / root",
+      "names": ["swapon", "swapoff"],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "_comment": "sysfs/sysctl mount/write — kernel introspection",
+      "names": ["_sysctl", "sysfs"],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "_comment": "User namespace creation (container escape if misused)",
+      "names": [
+        "clone_newuser"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "_comment": "Uncommon filesystem ops (not needed)",
+      "names": [
+        "quotactl",
+        "vmsplice",
+        "tee",
+        "vhangup"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "_comment": "Accounting / audit control",
+      "names": ["acct"],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "_comment": "add_key / keyctl — kernel keyring (used by some CVE)",
+      "names": [
+        "add_key",
+        "request_key",
+        "keyctl"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "_comment": "io_uring — nuovo syscall potente, recente CVE history",
+      "names": [
+        "io_uring_setup",
+        "io_uring_enter",
+        "io_uring_register"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    }
+  ]
+}

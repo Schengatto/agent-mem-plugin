@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C g:/workspace/agent-mem-plugin/ branch --show-current)",
+      "Bash(git -C g:/workspace/agent-mem-plugin/ checkout -b feat/f1-01-scaffold)",
+      "Bash(make help *)",
+      "Bash(cp .env.example /tmp/mm-ci.env)",
+      "Bash(sed -i 's/^PG_ADMIN_PASSWORD=.*/PG_ADMIN_PASSWORD=ci/' /tmp/mm-ci.env)",
+      "Bash(sed -i 's/^PG_MM_API_PASSWORD=.*/PG_MM_API_PASSWORD=ci/' /tmp/mm-ci.env)",
+      "Bash(sed -i 's/^PG_MM_WORKER_PASSWORD=.*/PG_MM_WORKER_PASSWORD=ci/' /tmp/mm-ci.env)",
+      "Bash(sed -i 's/^PG_MM_ADMIN_PASSWORD=.*/PG_MM_ADMIN_PASSWORD=ci/' /tmp/mm-ci.env)",
+      "Bash(docker compose *)",
+      "Bash(echo \"---exit $?---\")"
+    ]
+  }
+}
