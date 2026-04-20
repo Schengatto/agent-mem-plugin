@@ -77,6 +77,10 @@ restart: down up ## Restart completo
 restart-api: ## Restart solo api + worker (utile dopo cambio codice)
 	@$(COMPOSE) restart api embed-worker distillation-worker
 
+.PHONY: compose-check
+compose-check: ## Valida docker-compose (syntax + servizi + healthcheck)
+	@bash scripts/test-compose.sh
+
 # ═══════════════════════════════════════════════════════════════════════════
 # INSPECTION
 # ═══════════════════════════════════════════════════════════════════════════

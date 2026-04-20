@@ -109,6 +109,7 @@ services:
       start_period: 60s
     security_opt:
       - no-new-privileges:true
+    cap_drop: [ALL]
 
   # ─── API FastAPI (+ static Nuxt admin UI su /admin/*) ────────────────────
   api:
@@ -201,6 +202,9 @@ services:
     security_opt: [no-new-privileges:true]
     mem_limit: 384m
     command: ['python', '-m', 'app.workers.embedding']
+    # Healthcheck deferito a F3-01: semantica "ha processato messaggio negli ultimi N sec"
+    # richiede heartbeat Redis scritto dal consumer loop. `restart: unless-stopped`
+    # copre il caso "processo morto" nel frattempo.
 
   # ─── Distillation Worker (CRON 03:00, Qwen3 on-demand) ──────────────────
   distillation-worker:
@@ -234,6 +238,8 @@ services:
     security_opt: [no-new-privileges:true]
     mem_limit: 384m   # Con Gemini cloud, orchestrator leggero. Se Ollama+Qwen locale: il modello gira in container ollama.
     command: ['python', '-m', 'app.workers.distillation']
+    # Healthcheck deferito a F5-07: semantica "scheduler CRON attivo + lock Redis
+    # acquisibile". Scrittura heartbeat da APScheduler tick.
 
   # ─── Caddy reverse proxy (TLS opzionale, unico ingress) ─────────────────
   caddy:

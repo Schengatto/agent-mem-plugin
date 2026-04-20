@@ -35,24 +35,13 @@ jobs:
   # valido. Utile già in Sprint 1 quando non c'è ancora codice applicativo.
   # ─────────────────────────────────────────────────────────────────────
   compose-validate:
-    name: docker compose config
+    name: docker compose smoke test (F1-02)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare .env for compose validation
-        run: |
-          cp .env.example .env
-          # Popola i required (`:?`) con placeholder per non bloccare il parse.
-          sed -i 's/^PG_ADMIN_PASSWORD=.*/PG_ADMIN_PASSWORD=ci-placeholder/' .env
-          sed -i 's/^PG_MM_API_PASSWORD=.*/PG_MM_API_PASSWORD=ci-placeholder/' .env
-          sed -i 's/^PG_MM_WORKER_PASSWORD=.*/PG_MM_WORKER_PASSWORD=ci-placeholder/' .env
-          sed -i 's/^PG_MM_ADMIN_PASSWORD=.*/PG_MM_ADMIN_PASSWORD=ci-placeholder/' .env
-          sed -i 's/^REDIS_PASSWORD=.*/REDIS_PASSWORD=ci-placeholder/' .env
-          sed -i 's/^SECRET_KEY=.*/SECRET_KEY=ci-placeholder-32-bytes-hex-zzzzzzzzzzzzzz/' .env
-      - name: Validate base compose
-        run: docker compose --env-file .env config --quiet
-      - name: Validate prod override compose
-        run: docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml config --quiet
+      - name: Run compose smoke test
+        # Single source of truth: lo stesso script usato da `make compose-check`.
+        run: bash scripts/test-compose.sh
 
   # ─────────────────────────────────────────────────────────────────────
   # Placeholder: si attivano quando api/app (Python) e plugin/ (Node)
