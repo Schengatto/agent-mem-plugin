@@ -81,6 +81,10 @@ restart-api: ## Restart solo api + worker (utile dopo cambio codice)
 compose-check: ## Valida docker-compose (syntax + servizi + healthcheck)
 	@bash scripts/test-compose.sh
 
+.PHONY: postgres-check
+postgres-check: ## Smoke test postgres+pgvector (boot, extensions, ruoli, grants)
+	@bash scripts/test-postgres.sh
+
 # ═══════════════════════════════════════════════════════════════════════════
 # INSPECTION
 # ═══════════════════════════════════════════════════════════════════════════
