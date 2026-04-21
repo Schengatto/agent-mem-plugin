@@ -31,21 +31,37 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 GRANT CONNECT ON DATABASE memorymesh TO mm_api, mm_worker, mm_admin, mm_retention;
 GRANT USAGE ON SCHEMA public TO mm_api, mm_worker, mm_admin, mm_retention;
 
+-- mm_admin è schema owner per le tabelle applicative: serve CREATE su public
+-- per eseguire Alembic come mm_admin (path di default in docker-compose.yml,
+-- evita di esporre la password superuser al container api). Le tabelle admin_*
+-- e applicative saranno create e "possedute" da mm_admin → RLS policies
+-- applicate alle app role ma bypassate dall'owner (comportamento voluto).
+GRANT CREATE ON SCHEMA public TO mm_admin;
+
 -- ─── Default Privileges per tabelle FUTURE ───────────────────────────────
--- Alembic crea tabelle come superuser (postgres). Questi ALTER DEFAULT
--- PRIVILEGES garantiscono che i grant si applichino automaticamente a ogni
--- nuova tabella — evita di dover ricordare GRANT a ogni migration.
+-- Alembic può essere eseguito come `postgres` (superuser, test/bootstrap) o
+-- come `mm_admin` (runtime `make migrate`). Le ALTER DEFAULT PRIVILEGES sono
+-- replicate per entrambi gli owner: i grant si applicano automaticamente a
+-- ogni nuova tabella — evita di dover ricordare GRANT a ogni migration.
 
 -- mm_api: SELECT/INSERT/UPDATE su tabelle operative. DELETE solo via admin.
 ALTER DEFAULT PRIVILEGES FOR USER postgres IN SCHEMA public
     GRANT SELECT, INSERT, UPDATE ON TABLES TO mm_api;
 ALTER DEFAULT PRIVILEGES FOR USER postgres IN SCHEMA public
     GRANT USAGE, SELECT ON SEQUENCES TO mm_api;
+ALTER DEFAULT PRIVILEGES FOR USER mm_admin IN SCHEMA public
+    GRANT SELECT, INSERT, UPDATE ON TABLES TO mm_api;
+ALTER DEFAULT PRIVILEGES FOR USER mm_admin IN SCHEMA public
+    GRANT USAGE, SELECT ON SEQUENCES TO mm_api;
 
 -- mm_worker: stesso set di mm_api (worker fa write-back su observations)
 ALTER DEFAULT PRIVILEGES FOR USER postgres IN SCHEMA public
     GRANT SELECT, INSERT, UPDATE ON TABLES TO mm_worker;
 ALTER DEFAULT PRIVILEGES FOR USER postgres IN SCHEMA public
+    GRANT USAGE, SELECT ON SEQUENCES TO mm_worker;
+ALTER DEFAULT PRIVILEGES FOR USER mm_admin IN SCHEMA public
+    GRANT SELECT, INSERT, UPDATE ON TABLES TO mm_worker;
+ALTER DEFAULT PRIVILEGES FOR USER mm_admin IN SCHEMA public
     GRANT USAGE, SELECT ON SEQUENCES TO mm_worker;
 
 -- mm_admin: SELECT su tutte le tabelle (UI readonly) + FULL su tabelle admin_*
@@ -55,6 +71,13 @@ ALTER DEFAULT PRIVILEGES FOR USER postgres IN SCHEMA public
 ALTER DEFAULT PRIVILEGES FOR USER postgres IN SCHEMA public
     GRANT SELECT, UPDATE, DELETE ON TABLES TO mm_admin;
 ALTER DEFAULT PRIVILEGES FOR USER postgres IN SCHEMA public
+    GRANT USAGE, SELECT ON SEQUENCES TO mm_admin;
+-- Quando mm_admin crea una tabella ne è già owner → tutti i privilegi
+-- impliciti. La default privilege esplicita sotto serve come safety net per
+-- tabelle create da postgres in situazioni di emergenza.
+ALTER DEFAULT PRIVILEGES FOR USER mm_admin IN SCHEMA public
+    GRANT SELECT, UPDATE, DELETE ON TABLES TO mm_admin;
+ALTER DEFAULT PRIVILEGES FOR USER mm_admin IN SCHEMA public
     GRANT USAGE, SELECT ON SEQUENCES TO mm_admin;
 
 \echo '  ✓ Default privileges configured (apply to future Alembic tables)'

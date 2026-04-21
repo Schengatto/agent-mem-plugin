@@ -26,7 +26,7 @@
 | F1-01 | Repo, Makefile, .env.example, README quickstart, CI skeleton, pre-commit gitleaks | S | Sonnet | — | `[x]` |
 | F1-02 | Docker Compose completo (tutti i servizi, health check) | M | Sonnet | F1-01 | `[x]` |
 | F1-03 | PostgreSQL + pgvector (image, init.sql, config) | S | Sonnet | F1-02 | `[x]` |
-| F1-04 | Schema DB completo + Alembic (obs, manifest, vocab, sessions, token_metrics, query_fingerprints, project_manifest_meta) incluse colonne scope/last_used_at/access_count/token_estimate/shortcode/is_root/scope_path e tabella opzionale manifest_entries_accessed (se MEMORYMESH_FP_LOGGING=true) | L | **Opus** | F1-03 | `[ ]` |
+| F1-04 | Schema DB completo + Alembic (obs, manifest, vocab, sessions, token_metrics, query_fingerprints, project_manifest_meta) incluse colonne scope/last_used_at/access_count/token_estimate/shortcode/is_root/scope_path e tabella opzionale manifest_entries_accessed (se MEMORYMESH_FP_LOGGING=true) | L | **Opus** | F1-03 | `[x]` |
 | F1-05 | Redis Streams (embed_jobs, distill_jobs, consumer groups) | S | Sonnet | F1-02 | `[ ]` |
 | F1-06 | Ollama (MAX_LOADED_MODELS=1, KEEP_ALIVE=5m, pull script) | S | Sonnet | F1-02 | `[ ]` |
 | F1-07 | Caddy config (LAN http + HTTPS opzionale) | S | Sonnet | F1-02 | `[ ]` |

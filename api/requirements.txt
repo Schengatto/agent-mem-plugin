@@ -1,0 +1,18 @@
+# MemoryMesh API — runtime dependencies (F1-04 initial)
+#
+# Pin semantico human-maintained. requirements-hashes.txt (generato da
+# pip-compile --generate-hashes) sarà introdotto in F2-01 insieme al wiring
+# FastAPI completo. Per F1-04 servono solo i pacchetti necessari a far
+# girare le migrazioni Alembic; l'insieme completo (FastAPI, httpx, ecc.)
+# arriva con F2-01.
+#
+# Vedi docs/DEPENDENCIES.md per ADR versioni.
+
+# ─── DB & migrations (F1-04) ─────────────────────────────────────────────
+sqlalchemy==2.0.*           # metadata + MigrationContext di Alembic
+alembic==1.14.*             # schema migrations
+psycopg[binary]==3.2.*      # sync driver usato da Alembic (asyncpg arriva in F2-01)
+
+# ─── Config (minimal per alembic env) ────────────────────────────────────
+pydantic==2.13.*            # future-proof per config.py
+pydantic-settings==2.7.*    # env loader

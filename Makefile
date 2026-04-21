@@ -129,13 +129,22 @@ redis-shell: ## redis-cli interattivo (autenticato)
 	@$(COMPOSE) exec redis redis-cli -a $(REDIS_PASSWORD)
 
 .PHONY: migrate
-migrate: ## Applica le migrazioni Alembic
-	@$(COMPOSE) exec api alembic upgrade head
+migrate: ## Applica le migrazioni Alembic (via api container, mm_admin)
+	@$(COMPOSE) exec -w /app -e DATABASE_ADMIN_URL=$${DATABASE_ADMIN_URL} api alembic upgrade head
+
+.PHONY: migrate-down
+migrate-down: ## Alembic downgrade (make migrate-down REV=<base|-1|0001>)
+	@test -n "$(REV)" || (echo "Usage: make migrate-down REV=<base|-1|0001>"; exit 1)
+	@$(COMPOSE) exec -w /app -e DATABASE_ADMIN_URL=$${DATABASE_ADMIN_URL} api alembic downgrade $(REV)
 
 .PHONY: migrate-create
 migrate-create: ## Crea una nuova migrazione (usa: make migrate-create MSG="add foo")
 	@test -n "$(MSG)" || (echo "Usage: make migrate-create MSG=\"description\""; exit 1)
-	@$(COMPOSE) exec api alembic revision --autogenerate -m "$(MSG)"
+	@$(COMPOSE) exec -w /app api alembic revision --autogenerate -m "$(MSG)"
+
+.PHONY: migrate-check
+migrate-check: ## Alembic smoke test completo F1-04 (boot postgres, upgrade, verify, downgrade)
+	@bash scripts/test-alembic.sh
 
 .PHONY: backup
 backup: ## pg_dump crittato age in ./backups/

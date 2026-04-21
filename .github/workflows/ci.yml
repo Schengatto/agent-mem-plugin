@@ -54,6 +54,23 @@ jobs:
         # extensions vector+pgcrypto, ruoli mm_*, default privileges.
         run: bash scripts/test-postgres.sh
 
+  alembic-smoke:
+    name: Alembic baseline schema smoke test (F1-04)
+    runs-on: ubuntu-latest
+    needs: postgres-smoke
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          # psycopg3 richiede Python >= 3.11; usiamo 3.12 LTS (3.14 è target
+          # container, runner host può stare sulla minor più stabile).
+          python-version: '3.12'
+      - name: Run Alembic smoke test
+        # Stesso script di `make migrate-check`. Upgrade head, verifica
+        # tabelle/indici/trigger/RLS, downgrade base, re-upgrade.
+        run: bash scripts/test-alembic.sh
+
   # ─────────────────────────────────────────────────────────────────────
   # Placeholder: si attivano quando api/app (Python) e plugin/ (Node)
   # avranno codice. Oggi sono no-op che passano.
