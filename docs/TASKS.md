@@ -31,7 +31,7 @@
 | F1-06 | Ollama (MAX_LOADED_MODELS=1, KEEP_ALIVE=5m, pull script) | S | Sonnet | F1-02 | `[ ]` |
 | F1-07 | Caddy config (LAN http + HTTPS opzionale) | S | Sonnet | F1-02 | `[ ]` |
 | F1-08 | Backup pg_dump schedulato + smoke test bash | S | Sonnet | F1-06 | `[ ]` |
-| F1-09 | mDNS broadcaster (zeroconf, annuncia `_memorymesh._tcp.local`, docker-compose host network o avahi sidecar) | M | **Opus** | F1-02 | `[ ]` |
+| F1-09 | mDNS broadcaster (zeroconf, annuncia `_memorymesh._tcp.local`, docker-compose host network o avahi sidecar) | M | **Opus** | F1-02 | `[x]` |
 
 **DoD Fase 1:** `make up` OK, smoke test passa, psql raggiungibile da secondo PC LAN, Ollama risponde.
 

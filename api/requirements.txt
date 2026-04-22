@@ -1,0 +1,11 @@
+# MemoryMesh API — runtime dependencies (F1-09 initial)
+#
+# Pin semantico human-maintained. requirements-hashes.txt (generato da
+# pip-compile --generate-hashes) sarà introdotto in F2-01 insieme al wiring
+# FastAPI completo. Per F1-09 serve solo il pacchetto `zeroconf` usato dal
+# broadcaster mDNS (app/mdns.py).
+#
+# Vedi docs/DEPENDENCIES.md per ADR versioni.
+
+# ─── mDNS broadcaster (F1-09) ────────────────────────────────────────────
+zeroconf==0.135.*          # _memorymesh._tcp.local broadcaster (LAN discovery)

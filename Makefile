@@ -85,6 +85,10 @@ compose-check: ## Valida docker-compose (syntax + servizi + healthcheck)
 postgres-check: ## Smoke test postgres+pgvector (boot, extensions, ruoli, grants)
 	@bash scripts/test-postgres.sh
 
+.PHONY: mdns-check
+mdns-check: ## Smoke test mDNS broadcaster (avahi XML + Python zeroconf roundtrip)
+	@bash scripts/test-mdns.sh
+
 # ═══════════════════════════════════════════════════════════════════════════
 # INSPECTION
 # ═══════════════════════════════════════════════════════════════════════════
