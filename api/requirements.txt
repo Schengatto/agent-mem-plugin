@@ -1,10 +1,10 @@
-# MemoryMesh API — runtime dependencies (F1-04 initial)
+# MemoryMesh API — runtime dependencies (Sprint 1 — F1-04 + F1-05)
 #
 # Pin semantico human-maintained. requirements-hashes.txt (generato da
 # pip-compile --generate-hashes) sarà introdotto in F2-01 insieme al wiring
-# FastAPI completo. Per F1-04 servono solo i pacchetti necessari a far
-# girare le migrazioni Alembic; l'insieme completo (FastAPI, httpx, ecc.)
-# arriva con F2-01.
+# FastAPI completo. Per Sprint 1 servono solo i pacchetti necessari a far
+# girare Alembic e il client Redis Streams; l'insieme completo (FastAPI,
+# httpx, asyncpg, ecc.) arriva con F2-01.
 #
 # Vedi docs/DEPENDENCIES.md per ADR versioni.
 
@@ -13,6 +13,9 @@ sqlalchemy==2.0.*           # metadata + MigrationContext di Alembic
 alembic==1.14.*             # schema migrations
 psycopg[binary]==3.2.*      # sync driver usato da Alembic (asyncpg arriva in F2-01)
 
-# ─── Config (minimal per alembic env) ────────────────────────────────────
-pydantic==2.13.*            # future-proof per config.py
+# ─── Redis Streams (F1-05) ───────────────────────────────────────────────
+redis==5.2.*                # client Python per Redis 8 (async/asyncio)
+
+# ─── Validation / config (F1-04 + F1-05) ─────────────────────────────────
+pydantic==2.13.*            # config.py + schemi EmbedJob/DistillJob/TightenJob/DlqEnvelope
 pydantic-settings==2.7.*    # env loader

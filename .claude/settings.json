@@ -35,7 +35,15 @@
       "Bash(chmod +x api/init-roles.sh)",
       "Bash(chmod +x scripts/test-alembic.sh)",
       "Bash(bash scripts/test-alembic.sh)",
-      "Bash(python3 -m venv /tmp/test_venv_mm)"
+      "Bash(python3 -m venv /tmp/test_venv_mm)",
+      "Bash(gh pr create --title 'feat\\(F1-04\\): schema DB completo + Alembic' --body ' *)",
+      "Bash(git pull *)",
+      "Bash(git ls-tree *)",
+      "Bash(chmod +x scripts/test-redis-streams.sh)",
+      "Bash(bash scripts/test-redis-streams.sh)",
+      "Bash(powershell.exe -Command \"Start-Process 'C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe'\")",
+      "Bash(docker exec *)",
+      "Bash(git reset *)"
     ],
     "additionalDirectories": [
       "\\tmp"
