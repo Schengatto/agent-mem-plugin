@@ -85,15 +85,13 @@ compose-check: ## Valida docker-compose (syntax + servizi + healthcheck)
 postgres-check: ## Smoke test postgres+pgvector (boot, extensions, ruoli, grants)
 	@bash scripts/test-postgres.sh
 
-<<<<<<< HEAD
 .PHONY: redis-check
 redis-check: ## Smoke test Redis Streams (XGROUP CREATE, XADD, XREADGROUP, XACK, DLQ)
 	@bash scripts/test-redis-streams.sh
-=======
+
 .PHONY: ollama-check
 ollama-check: ## Smoke test Ollama (profile opt-in, env hardening, ollama list, dry-run pull)
 	@bash scripts/test-ollama.sh
->>>>>>> feat/f1-06-ollama
 
 # ═══════════════════════════════════════════════════════════════════════════
 # INSPECTION
