@@ -43,7 +43,13 @@
       "Bash(bash scripts/test-redis-streams.sh)",
       "Bash(powershell.exe -Command \"Start-Process 'C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe'\")",
       "Bash(docker exec *)",
-      "Bash(git reset *)"
+      "Bash(git reset *)",
+      "Bash(gh pr create --title 'feat\\(F1-05\\): Redis Streams \\(embed_jobs, distill_jobs, tighten_jobs\\)' --body ' *)",
+      "Bash(chmod +x scripts/ollama-pull.sh)",
+      "Bash(bash -n scripts/ollama-pull.sh)",
+      "Bash(chmod +x scripts/test-ollama.sh)",
+      "Bash(bash -n scripts/test-ollama.sh)",
+      "Bash(bash scripts/test-ollama.sh)"
     ],
     "additionalDirectories": [
       "\\tmp"

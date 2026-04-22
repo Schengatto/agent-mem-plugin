@@ -85,9 +85,15 @@ compose-check: ## Valida docker-compose (syntax + servizi + healthcheck)
 postgres-check: ## Smoke test postgres+pgvector (boot, extensions, ruoli, grants)
 	@bash scripts/test-postgres.sh
 
+<<<<<<< HEAD
 .PHONY: redis-check
 redis-check: ## Smoke test Redis Streams (XGROUP CREATE, XADD, XREADGROUP, XACK, DLQ)
 	@bash scripts/test-redis-streams.sh
+=======
+.PHONY: ollama-check
+ollama-check: ## Smoke test Ollama (profile opt-in, env hardening, ollama list, dry-run pull)
+	@bash scripts/test-ollama.sh
+>>>>>>> feat/f1-06-ollama
 
 # ═══════════════════════════════════════════════════════════════════════════
 # INSPECTION
@@ -181,9 +187,8 @@ vocab-dump: ## Dump del vocabolario di un progetto (VAR: PROJECT)
 	@$(COMPOSE) exec api python -m app.cli vocab-dump --project=$(PROJECT)
 
 .PHONY: ollama-pull
-ollama-pull: ## Pull dei modelli Ollama (nomic-embed + Qwen3)
-	@$(COMPOSE) exec ollama ollama pull $(OLLAMA_EMBED_MODEL)
-	@$(COMPOSE) exec ollama ollama pull $(OLLAMA_DISTILL_MODEL)
+ollama-pull: ## Pull idempotente dei modelli Ollama (nomic-embed + Qwen3)
+	@bash scripts/ollama-pull.sh
 
 # ═══════════════════════════════════════════════════════════════════════════
 # BUILD
