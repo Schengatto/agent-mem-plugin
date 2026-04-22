@@ -32,7 +32,21 @@
       "Bash(cp .env.example /tmp/mm-debug.env)",
       "Bash(sed -i -e 's/^PG_ADMIN_PASSWORD=.*/PG_ADMIN_PASSWORD=ci/' -e 's/^PG_MM_API_PASSWORD=.*/PG_MM_API_PASSWORD=ci/' -e 's/^PG_MM_WORKER_PASSWORD=.*/PG_MM_WORKER_PASSWORD=ci/' -e 's/^PG_MM_ADMIN_PASSWORD=.*/PG_MM_ADMIN_PASSWORD=ci/' -e 's/^REDIS_PASSWORD=.*/REDIS_PASSWORD=ci/' -e 's/^SECRET_KEY=.*/SECRET_KEY=ci0000000000000000000000000000000000000000000000000000000000000000/' /tmp/mm-debug.env)",
       "Bash(python3 -c ' *)",
-      "Bash(chmod +x api/init-roles.sh)"
+      "Bash(chmod +x api/init-roles.sh)",
+      "Bash(chmod +x scripts/test-alembic.sh)",
+      "Bash(bash scripts/test-alembic.sh)",
+      "Bash(python3 -m venv /tmp/test_venv_mm)",
+      "Bash(gh pr create --title 'feat\\(F1-04\\): schema DB completo + Alembic' --body ' *)",
+      "Bash(git pull *)",
+      "Bash(git ls-tree *)",
+      "Bash(chmod +x scripts/test-redis-streams.sh)",
+      "Bash(bash scripts/test-redis-streams.sh)",
+      "Bash(powershell.exe -Command \"Start-Process 'C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe'\")",
+      "Bash(docker exec *)",
+      "Bash(git reset *)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }
