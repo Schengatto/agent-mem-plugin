@@ -12,7 +12,7 @@
     admin localhost:2019
 
     # Let's Encrypt account
-    email {env.ADMIN_EMAIL}
+    email {$ADMIN_EMAIL}
 
     # TLS 1.3 only — profilo public
     servers {
@@ -28,7 +28,7 @@
 }
 
 # ─── Redirect HTTP → HTTPS (HSTS-friendly) ──────────────────────────────
-http://{env.MEMORYMESH_HOSTNAME} {
+http://{$MEMORYMESH_HOSTNAME} {
     # Let's Encrypt challenge resta su HTTP
     @acme path /.well-known/acme-challenge/*
     handle @acme {
@@ -39,7 +39,7 @@ http://{env.MEMORYMESH_HOSTNAME} {
 }
 
 # ─── HTTPS server principale ────────────────────────────────────────────
-https://{env.MEMORYMESH_HOSTNAME} {
+https://{$MEMORYMESH_HOSTNAME} {
     # Log access strutturato JSON, friendly per fail2ban/Loki
     log {
         output file /var/log/memorymesh/access.log {
@@ -129,19 +129,23 @@ https://{env.MEMORYMESH_HOSTNAME} {
     }
     handle @admin_static {
         root * /static
-        file_server { precompressed br gzip }
+        file_server {
+            precompressed br gzip
+        }
         header Cache-Control "public, max-age=31536000, immutable"
     }
 
     # ─── /admin/* API (POST/PUT/PATCH/DELETE) ───────────────────────────
+    # Non-GET methods non sono mai asset → safe usare path /admin/* puro.
+    # Gli asset statici sono catturati da @admin_static (sopra) per
+    # first-match-wins (Go RE2 non supporta negative-lookahead).
     @admin_api {
-        path_regexp /admin/(?!_nuxt|favicon|manifest\.webmanifest).*
+        path /admin/*
         method POST PUT PATCH DELETE
     }
     handle @admin_api {
         reverse_proxy api:8000 {
             header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto https
         }
     }
@@ -167,7 +171,6 @@ https://{env.MEMORYMESH_HOSTNAME} {
         }
         reverse_proxy api:8000 {
             header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto https
         }
     }

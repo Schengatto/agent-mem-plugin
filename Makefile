@@ -85,6 +85,10 @@ compose-check: ## Valida docker-compose (syntax + servizi + healthcheck)
 postgres-check: ## Smoke test postgres+pgvector (boot, extensions, ruoli, grants)
 	@bash scripts/test-postgres.sh
 
+.PHONY: caddy-check
+caddy-check: ## Smoke test Caddy (validate LAN+prod, routing, security headers)
+	@bash scripts/test-caddy.sh
+
 # ═══════════════════════════════════════════════════════════════════════════
 # INSPECTION
 # ═══════════════════════════════════════════════════════════════════════════
