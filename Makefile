@@ -138,21 +138,19 @@ migrate-create: ## Crea una nuova migrazione (usa: make migrate-create MSG="add 
 	@$(COMPOSE) exec api alembic revision --autogenerate -m "$(MSG)"
 
 .PHONY: backup
-backup: ## pg_dump crittato age in ./backups/
-	@mkdir -p backups
-	@test -f /etc/memorymesh/backup-pubkey.age || (echo "ERROR: /etc/memorymesh/backup-pubkey.age non trovata. Vedi SECURITY.md §6.4"; exit 1)
-	@DATE=$$(date +%F-%H%M); \
-	 $(COMPOSE) exec -T postgres pg_dump -U $(PG_ADMIN_USER) --format=custom memorymesh | \
-	 age -r "$$(cat /etc/memorymesh/backup-pubkey.age)" > "backups/backup-$$DATE.sql.enc" && \
-	 echo "✓ Backup cifrato salvato in backups/backup-$$DATE.sql.enc"
+backup: ## pg_dump | gzip | age → backups/backup-YYYY-MM-DD-HHMM.sql.gz.enc (F1-08)
+	@bash scripts/backup-pg.sh
 
 .PHONY: restore
-restore: ## Restore da backup cifrato (make restore BACKUP=path/to/file.sql.enc)
-	@test -n "$(BACKUP)" || (echo "Usage: make restore BACKUP=backups/foo.sql.enc"; exit 1)
+restore: ## Restore da backup cifrato (make restore BACKUP=backups/foo.sql.gz.enc)
+	@test -n "$(BACKUP)" || (echo "Usage: make restore BACKUP=backups/foo.sql.gz.enc"; exit 1)
 	@echo "⚠ ATTENZIONE: questo sovrascriverà il DB corrente. Continua? [y/N]"; \
 	 read -r resp; test "$$resp" = "y" || exit 1
-	@age -d -i ~/.memorymesh-backup-key.age $(BACKUP) | \
-	 $(COMPOSE) exec -T postgres pg_restore -U $(PG_ADMIN_USER) -d memorymesh --clean --if-exists
+	@FILE=$(BACKUP) bash scripts/restore-pg.sh
+
+.PHONY: backup-check
+backup-check: ## Smoke test backup/restore roundtrip (pg_dump | gzip | age → encrypted → age -d | gunzip | psql)
+	@bash scripts/test-backup.sh
 
 # ═══════════════════════════════════════════════════════════════════════════
 # OPERATIONS

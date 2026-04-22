@@ -54,6 +54,20 @@ jobs:
         # extensions vector+pgcrypto, ruoli mm_*, default privileges.
         run: bash scripts/test-postgres.sh
 
+  backup-smoke:
+    name: Backup pg_dump+age smoke test (F1-08)
+    runs-on: ubuntu-latest
+    needs: postgres-smoke
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run backup roundtrip smoke test
+        # Stesso script di `make backup-check`. Boot postgres, seed 3 righe
+        # (incluso unicode), backup pg_dump | gzip | age encrypted, DROP
+        # schema, restore age -d | gunzip | psql, verifica integrità 3
+        # righe + retention KEEP_LAST=1. Age fornito via docker image
+        # anonima (alpine + apk add age) — no host age richiesto.
+        run: bash scripts/test-backup.sh
+
   # ─────────────────────────────────────────────────────────────────────
   # Placeholder: si attivano quando api/app (Python) e plugin/ (Node)
   # avranno codice. Oggi sono no-op che passano.
