@@ -54,6 +54,23 @@ jobs:
         # extensions vector+pgcrypto, ruoli mm_*, default privileges.
         run: bash scripts/test-postgres.sh
 
+  redis-streams-smoke:
+    name: Redis Streams smoke test (F1-05)
+    runs-on: ubuntu-latest
+    needs: compose-validate
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          # Il driver host richiede Python >= 3.11 (pydantic 2.13 + redis 5.2).
+          python-version: '3.12'
+      - name: Run Redis Streams smoke test
+        # Stesso script di `make redis-check`. Boot redis, ensure consumer
+        # groups su mm:embed_jobs/mm:distill_jobs/mm:tighten_jobs, testa
+        # round-trip XADD→XREADGROUP→XACK, DLQ append, schema pydantic.
+        run: bash scripts/test-redis-streams.sh
+
   # ─────────────────────────────────────────────────────────────────────
   # Placeholder: si attivano quando api/app (Python) e plugin/ (Node)
   # avranno codice. Oggi sono no-op che passano.

@@ -1,0 +1,15 @@
+# MemoryMesh API — runtime dependencies (F1-05 initial)
+#
+# Pin semantico human-maintained. requirements-hashes.txt (generato da
+# pip-compile --generate-hashes) sarà introdotto in F2-01 insieme al wiring
+# FastAPI completo. Per F1-05 servono solo i pacchetti necessari a bootstrap
+# Redis Streams (client + validazione schemi); l'insieme completo (FastAPI,
+# asyncpg, alembic, httpx, ecc.) arriva con F2-01.
+#
+# Vedi docs/DEPENDENCIES.md per ADR versioni.
+
+# ─── Redis Streams (F1-05) ───────────────────────────────────────────────
+redis==5.2.*               # client Python per Redis 8 (async/asyncio)
+
+# ─── Validation ──────────────────────────────────────────────────────────
+pydantic==2.13.*           # schemi EmbedJob / DistillJob / TightenJob / DlqEnvelope
