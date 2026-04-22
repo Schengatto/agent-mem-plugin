@@ -32,7 +32,10 @@
       "Bash(cp .env.example /tmp/mm-debug.env)",
       "Bash(sed -i -e 's/^PG_ADMIN_PASSWORD=.*/PG_ADMIN_PASSWORD=ci/' -e 's/^PG_MM_API_PASSWORD=.*/PG_MM_API_PASSWORD=ci/' -e 's/^PG_MM_WORKER_PASSWORD=.*/PG_MM_WORKER_PASSWORD=ci/' -e 's/^PG_MM_ADMIN_PASSWORD=.*/PG_MM_ADMIN_PASSWORD=ci/' -e 's/^REDIS_PASSWORD=.*/REDIS_PASSWORD=ci/' -e 's/^SECRET_KEY=.*/SECRET_KEY=ci0000000000000000000000000000000000000000000000000000000000000000/' /tmp/mm-debug.env)",
       "Bash(python3 -c ' *)",
-      "Bash(chmod +x api/init-roles.sh)"
+      "Bash(chmod +x api/init-roles.sh)",
+      "Bash(chmod +x scripts/test-mdns.sh)",
+      "Bash(bash -n scripts/test-mdns.sh)",
+      "Bash(bash scripts/test-mdns.sh)"
     ]
   }
 }
