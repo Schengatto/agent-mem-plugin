@@ -52,7 +52,16 @@
       "Bash(bash scripts/test-ollama.sh)",
       "Bash(chmod +x scripts/test-caddy.sh)",
       "Bash(bash -n scripts/test-caddy.sh)",
-      "Bash(bash scripts/test-caddy.sh)"
+      "Bash(bash scripts/test-caddy.sh)",
+      "Bash(command -v age)",
+      "Bash(age --version)",
+      "Bash(command -v age-keygen)",
+      "Bash(chmod +x scripts/backup-pg.sh scripts/restore-pg.sh)",
+      "Bash(bash -n scripts/backup-pg.sh)",
+      "Bash(bash -n scripts/restore-pg.sh)",
+      "Bash(chmod +x scripts/test-backup.sh)",
+      "Bash(bash -n scripts/test-backup.sh)",
+      "Bash(bash scripts/test-backup.sh)"
     ],
     "additionalDirectories": [
       "\\tmp"
