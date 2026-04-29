@@ -88,8 +88,6 @@ services:
     security_opt:
       - no-new-privileges:true
     cap_drop: [ALL]
-    read_only: true
-    tmpfs: ['/tmp:size=32M']
 
   # ─── Ollama — OPZIONALE (profile=B o C, privacy-strict) ────────────────
   # Attivo solo se: docker compose --profile ollama up
