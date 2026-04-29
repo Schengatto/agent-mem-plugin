@@ -47,7 +47,7 @@
 | ID | Task | Effort | Modello | Dipende | Status |
 |----|------|--------|---------|---------|--------|
 | F2-01 | Struttura FastAPI (routers, services, schemas, config) | S | Sonnet | F1-02 | `[x]` |
-| F2-02 | Auth API Key (middleware SHA-256, 401/403, key generation) | M | **Opus** | F2-01 | `[ ]` |
+| F2-02 | Auth API Key (middleware SHA-256, 401/403, key generation) | M | **Opus** | F2-01 | `[x]` |
 | F2-03 | CRUD observations tipizzate (POST 202, batch fetch, DELETE) | M | **Opus** | F2-02, F1-04 | `[ ]` |
 | F2-04 | Gestione utenti e progetti (is_team, parent_id, enforcement) | M | **Opus** | F2-02 | `[ ]` |
 | F2-05 | GET /manifest (budget token, one-liner adattivi, ETag) con scope_prefix + root_only + serializzazione deterministica cache-stable | M | **Opus** | F2-03 | `[ ]` |
