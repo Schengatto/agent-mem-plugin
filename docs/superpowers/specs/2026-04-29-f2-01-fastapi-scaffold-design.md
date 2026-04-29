@@ -72,14 +72,13 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from app.config import get_settings
 from app.routers import health, observations, search, manifest, vocab, sessions, mcp
 
-settings = get_settings()
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    s = get_settings()   # inside lifespan — avoids SECRET_KEY required at import time
     app.state.db_pool = await asyncpg.create_pool(
-        settings.database_url_asyncpg, min_size=2, max_size=10
+        s.database_url_asyncpg, min_size=2, max_size=10
     )
-    app.state.redis = await Redis.from_url(settings.redis_url, decode_responses=True)
+    app.state.redis = Redis.from_url(s.redis_url, decode_responses=True)  # sync ctor in redis-py 5.x
     yield
     await app.state.db_pool.close()
     await app.state.redis.aclose()

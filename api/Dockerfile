@@ -1,6 +1,6 @@
 # MemoryMesh API — multi-stage Dockerfile
 #
-# Stage 1 (builder):  installa deps Python con --require-hashes
+# Stage 1 (builder):  installa deps Python (--require-hashes deferred to F12)
 # Stage 2 (runtime):  COPY da builder, user non-root, minimal footprint
 #
 # Build:
@@ -33,11 +33,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 
 # Copy solo requirements per maximizzare docker layer cache
-COPY requirements.txt requirements-hashes.txt ./
+COPY requirements.txt ./
 
-# Install con --require-hashes per supply chain integrity.
-# requirements-hashes.txt è generato via `pip-compile --generate-hashes requirements.in`
-RUN pip install --user --require-hashes -r requirements-hashes.txt
+# TODO F12: switch to --require-hashes -r requirements-hashes.txt
+# To generate: docker run --rm -v $(pwd):/w -w /w python:3.14.4-slim \
+#   sh -c "pip install pip-tools && pip-compile --generate-hashes requirements.in"
+RUN pip install --user -r requirements.txt
 
 # ══════════════════════════════════════════════════════════════════════════
 # Stage 2: runtime (minimal, non-root)
