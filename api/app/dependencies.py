@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
+
 import asyncpg
 from fastapi import Depends, Request
 from redis.asyncio import Redis
@@ -7,7 +9,7 @@ from redis.asyncio import Redis
 from app.config import Settings, get_settings
 
 
-async def get_db(request: Request) -> asyncpg.Connection:
+async def get_db(request: Request) -> AsyncGenerator[asyncpg.Connection, None]:
     async with request.app.state.db_pool.acquire() as conn:
         yield conn
 
