@@ -1,6 +1,6 @@
 # MemoryMesh API — multi-stage Dockerfile
 #
-# Stage 1 (builder):  installa deps Python con --require-hashes
+# Stage 1 (builder):  installa deps Python (--require-hashes deferred to F12)
 # Stage 2 (runtime):  COPY da builder, user non-root, minimal footprint
 #
 # Build:
