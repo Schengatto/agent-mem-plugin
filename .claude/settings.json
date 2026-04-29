@@ -33,6 +33,7 @@
       "Bash(sed -i -e 's/^PG_ADMIN_PASSWORD=.*/PG_ADMIN_PASSWORD=ci/' -e 's/^PG_MM_API_PASSWORD=.*/PG_MM_API_PASSWORD=ci/' -e 's/^PG_MM_WORKER_PASSWORD=.*/PG_MM_WORKER_PASSWORD=ci/' -e 's/^PG_MM_ADMIN_PASSWORD=.*/PG_MM_ADMIN_PASSWORD=ci/' -e 's/^REDIS_PASSWORD=.*/REDIS_PASSWORD=ci/' -e 's/^SECRET_KEY=.*/SECRET_KEY=ci0000000000000000000000000000000000000000000000000000000000000000/' /tmp/mm-debug.env)",
       "Bash(python3 -c ' *)",
       "Bash(chmod +x api/init-roles.sh)",
+<<<<<<< HEAD
       "Bash(chmod +x scripts/test-alembic.sh)",
       "Bash(bash scripts/test-alembic.sh)",
       "Bash(python3 -m venv /tmp/test_venv_mm)",
@@ -61,7 +62,10 @@
       "Bash(bash -n scripts/restore-pg.sh)",
       "Bash(chmod +x scripts/test-backup.sh)",
       "Bash(bash -n scripts/test-backup.sh)",
-      "Bash(bash scripts/test-backup.sh)"
+      "Bash(bash scripts/test-backup.sh)",
+      "Bash(chmod +x scripts/test-mdns.sh)",
+      "Bash(bash -n scripts/test-mdns.sh)",
+      "Bash(bash scripts/test-mdns.sh)"
     ],
     "additionalDirectories": [
       "\\tmp"

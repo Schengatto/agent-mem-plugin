@@ -85,6 +85,7 @@ compose-check: ## Valida docker-compose (syntax + servizi + healthcheck)
 postgres-check: ## Smoke test postgres+pgvector (boot, extensions, ruoli, grants)
 	@bash scripts/test-postgres.sh
 
+<<<<<<< HEAD
 .PHONY: redis-check
 redis-check: ## Smoke test Redis Streams (XGROUP CREATE, XADD, XREADGROUP, XACK, DLQ)
 	@bash scripts/test-redis-streams.sh
@@ -96,6 +97,10 @@ ollama-check: ## Smoke test Ollama (profile opt-in, env hardening, ollama list, 
 .PHONY: caddy-check
 caddy-check: ## Smoke test Caddy (validate LAN+prod, routing, security headers)
 	@bash scripts/test-caddy.sh
+
+.PHONY: mdns-check
+mdns-check: ## Smoke test mDNS broadcaster (avahi XML + Python zeroconf roundtrip)
+	@bash scripts/test-mdns.sh
 
 # ═══════════════════════════════════════════════════════════════════════════
 # INSPECTION
