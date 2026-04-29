@@ -49,7 +49,7 @@ def test_database_url_asyncpg_unchanged_if_already_plain():
 
 def test_secret_key_has_no_default():
     """SECRET_KEY must be explicitly provided — no default allowed."""
-    with pytest.raises((ValidationError, Exception)):
+    with pytest.raises(ValidationError):
         Settings(
             DATABASE_URL="postgresql+psycopg://u:p@localhost/db",
             REDIS_URL="redis://localhost:6379/0",

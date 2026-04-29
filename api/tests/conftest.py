@@ -5,6 +5,20 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from app.config import get_settings
+
+
+@pytest.fixture(autouse=True)
+def clear_settings_cache():
+    """Clear the lru_cache on get_settings() between tests.
+
+    Without this, any test that calls get_settings() directly would receive
+    a cached Settings instance built from a previous test's env state.
+    """
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
 
 @pytest.fixture()
 def client():

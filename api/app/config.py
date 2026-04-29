@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
+        # "ignore" because the shared .env file also carries variables for
+        # other Compose services (Postgres, Redis, Caddy) that are not
+        # MemoryMesh settings — forbid would raise on those unknown keys.
         extra="ignore",
     )
 
