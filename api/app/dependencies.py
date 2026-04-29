@@ -4,6 +4,7 @@ from collections.abc import AsyncGenerator
 
 import asyncpg
 from fastapi import Depends, HTTPException, Request, Security
+from redis.asyncio import Redis
 
 from app.auth import api_key_header, hash_api_key
 from app.config import Settings, get_settings
@@ -15,7 +16,7 @@ async def get_db(request: Request) -> AsyncGenerator[asyncpg.Connection, None]:
         yield conn
 
 
-async def get_redis(request: Request):
+async def get_redis(request: Request) -> Redis:
     return request.app.state.redis
 
 

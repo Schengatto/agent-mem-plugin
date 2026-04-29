@@ -85,6 +85,14 @@ class TestAuthMiddleware:
         resp = c.get("/api/v1/observations/ping", headers={"X-API-Key": raw_key})
         assert resp.status_code == 501  # stub returns 501, but auth succeeded
 
+    def test_revoked_key_returns_403(self, authed_client):
+        # A revoked key's hash is excluded by `revoked_at IS NULL` in the SQL query,
+        # so fetchrow returns None — same outcome as a completely unknown key.
+        c, _, _ = authed_client
+        resp = c.get("/api/v1/observations/ping", headers={"X-API-Key": "revoked-key-value"})
+        assert resp.status_code == 403
+        assert resp.json()["detail"] == "invalid_or_revoked_key"
+
     def test_health_no_auth_required(self, client):
         resp = client.get("/health")
         assert resp.status_code == 200
