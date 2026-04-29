@@ -93,6 +93,10 @@ redis-check: ## Smoke test Redis Streams (XGROUP CREATE, XADD, XREADGROUP, XACK,
 ollama-check: ## Smoke test Ollama (profile opt-in, env hardening, ollama list, dry-run pull)
 	@bash scripts/test-ollama.sh
 
+.PHONY: caddy-check
+caddy-check: ## Smoke test Caddy (validate LAN+prod, routing, security headers)
+	@bash scripts/test-caddy.sh
+
 # ═══════════════════════════════════════════════════════════════════════════
 # INSPECTION
 # ═══════════════════════════════════════════════════════════════════════════

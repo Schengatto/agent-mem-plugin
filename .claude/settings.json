@@ -49,7 +49,10 @@
       "Bash(bash -n scripts/ollama-pull.sh)",
       "Bash(chmod +x scripts/test-ollama.sh)",
       "Bash(bash -n scripts/test-ollama.sh)",
-      "Bash(bash scripts/test-ollama.sh)"
+      "Bash(bash scripts/test-ollama.sh)",
+      "Bash(chmod +x scripts/test-caddy.sh)",
+      "Bash(bash -n scripts/test-caddy.sh)",
+      "Bash(bash scripts/test-caddy.sh)"
     ],
     "additionalDirectories": [
       "\\tmp"

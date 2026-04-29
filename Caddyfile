@@ -98,17 +98,18 @@
         header Cache-Control "public, max-age=31536000, immutable"
     }
 
-    # Rotte API dell'admin plane (prefisso /admin/ ma NON asset statici)
+    # Rotte API dell'admin plane. Non servono filtri negativi per gli asset:
+    # il matcher @admin_static sopra viene valutato PRIMA in first-match-wins
+    # (Go RE2 non supporta la negative-lookahead). Qui limitiamo solo a verbi
+    # non-GET del path /admin/*.
     @admin_api {
-        path_regexp /admin/(?!_nuxt|favicon|manifest\.webmanifest).*
+        path /admin/*
         method POST PUT PATCH DELETE
     }
     handle @admin_api {
         reverse_proxy api:8000 {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-For {remote_host}
-            header_up X-Forwarded-Proto {scheme}
         }
     }
 
@@ -132,8 +133,6 @@
         reverse_proxy api:8000 {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-For {remote_host}
-            header_up X-Forwarded-Proto {scheme}
         }
     }
 
