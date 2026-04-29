@@ -19,7 +19,11 @@ def client():
     mock_redis.aclose = AsyncMock()
 
     with (
+        # main.py MUST use 'import asyncpg' (not 'from asyncpg import create_pool')
+        # for this patch target to intercept the call correctly.
         patch("asyncpg.create_pool", new_callable=AsyncMock, return_value=mock_pool),
+        # main.py MUST use 'from redis.asyncio import Redis' so Redis is bound
+        # into app.main's namespace and this patch target is valid.
         patch("app.main.Redis") as mock_redis_class,
     ):
         mock_redis_class.from_url.return_value = mock_redis
