@@ -24,10 +24,10 @@ class SearchResult(BaseModel):
     type: ObsType
     one_liner: str
     score: float
-    mode_used: str
+    mode_used: Literal["bm25", "vector", "hybrid"]
     rerank_applied: bool
 
 
 class SearchResponse(BaseModel):
     results: list[SearchResult]
-    total_ms: int
+    total_ms: int = Field(ge=0)

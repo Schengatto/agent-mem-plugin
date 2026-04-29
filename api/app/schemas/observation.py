@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -22,7 +21,7 @@ class ObsCreate(BaseModel):
     content: str = Field(min_length=1, max_length=20_000)
     tags: list[str] = []
     scope: list[str] = []
-    token_estimate: int | None = None
+    token_estimate: int | None = Field(default=None, ge=0)
     expires_at: datetime | None = None
     metadata: dict | None = None
 

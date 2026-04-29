@@ -59,6 +59,12 @@ class TestObsCreate:
         obs = ObsCreate(content="a directive", type=ObsType.directive)
         assert obs.type == ObsType.directive
 
+    def test_token_estimate_ge_0_enforced(self):
+        from app.schemas.observation import ObsCreate
+
+        with pytest.raises(ValidationError):
+            ObsCreate(content="hello", token_estimate=-1)
+
     def test_full_creation(self):
         from app.schemas.observation import ObsCreate, ObsType
 
@@ -131,6 +137,33 @@ class TestSearchRequest:
         for mode in ("bm25", "vector", "hybrid"):
             req = SearchRequest(q="query", project_id=pid, mode=mode)
             assert req.mode == mode
+
+    def test_invalid_project_id_rejected(self):
+        from app.schemas.search import SearchRequest
+
+        with pytest.raises(ValidationError):
+            SearchRequest(q="query", project_id="not-a-uuid")
+
+
+# ---------------------------------------------------------------------------
+# SearchResult / SearchResponse
+# ---------------------------------------------------------------------------
+
+
+class TestSearchResponse:
+    def test_mode_used_literal_enforced(self):
+        from app.schemas.search import SearchResult
+        from app.schemas.observation import ObsType
+
+        with pytest.raises(ValidationError):
+            SearchResult(id=1, type=ObsType.observation, one_liner="x",
+                         score=0.9, mode_used="invalid", rerank_applied=False)
+
+    def test_total_ms_ge_0_enforced(self):
+        from app.schemas.search import SearchResponse
+
+        with pytest.raises(ValidationError):
+            SearchResponse(results=[], total_ms=-1)
 
 
 # ---------------------------------------------------------------------------
@@ -228,6 +261,16 @@ class TestVocabEntry:
                 usage_count=0,
                 confidence=0.0,
             )
+
+    def test_confidence_bounds_enforced(self):
+        from app.schemas.vocab import VocabEntry
+
+        base = dict(id=1, term="T", shortcode=None, category="entity",
+                    definition="def", detail=None, usage_count=0)
+        with pytest.raises(ValidationError):
+            VocabEntry(**base, confidence=1.1)
+        with pytest.raises(ValidationError):
+            VocabEntry(**base, confidence=-0.1)
 
     def test_shortcode_optional(self):
         from app.schemas.vocab import VocabEntry
