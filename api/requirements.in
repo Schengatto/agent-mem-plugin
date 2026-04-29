@@ -1,0 +1,17 @@
+fastapi==0.136.*
+uvicorn[standard]==0.32.*
+pydantic==2.13.*
+pydantic-settings==2.7.*
+asyncpg==0.31.*
+pgvector==0.3.*
+sqlalchemy==2.0.*
+alembic==1.14.*
+psycopg[binary]==3.2.*
+redis==5.2.*
+httpx==0.28.*
+structlog==24.*
+tiktoken==0.8.*
+zeroconf==0.135.*
+pytest==8.*
+pytest-asyncio==0.23.*
+anyio[trio]==4.*

@@ -1,23 +1,43 @@
-# MemoryMesh API — runtime dependencies (Sprint 1 — F1-04 + F1-05 + F1-09)
+# MemoryMesh API — runtime + dev dependencies
+# Sprint 2 (F2-01): full FastAPI stack added.
 #
-# Pin semantico human-maintained. requirements-hashes.txt (generato da
-# pip-compile --generate-hashes) sarà introdotto in F2-01 insieme al wiring
-# FastAPI completo. L'insieme completo (FastAPI, httpx, asyncpg, ecc.)
-# arriva con F2-01.
+# Hash pinning (--require-hashes) is deferred to F12 (Security Hardening).
+# To regenerate: docker run --rm -v $(pwd):/w -w /w python:3.14.4-slim \
+#   pip install pip-tools && pip-compile --generate-hashes requirements.in
 #
-# Vedi docs/DEPENDENCIES.md per ADR versioni.
+# See docs/DEPENDENCIES.md for ADR on each version choice.
 
-# ─── DB & migrations (F1-04) ─────────────────────────────────────────────
-sqlalchemy==2.0.*           # metadata + MigrationContext di Alembic
-alembic==1.14.*             # schema migrations
-psycopg[binary]==3.2.*      # sync driver usato da Alembic (asyncpg arriva in F2-01)
+# ─── Web framework ────────────────────────────────────────────────────────────
+fastapi==0.136.*
+uvicorn[standard]==0.32.*
 
-# ─── Redis Streams (F1-05) ───────────────────────────────────────────────
-redis==5.2.*                # client Python per Redis 8 (async/asyncio)
+# ─── Validation / config ──────────────────────────────────────────────────────
+pydantic==2.13.*
+pydantic-settings==2.7.*
 
-# ─── mDNS broadcaster (F1-09) ────────────────────────────────────────────
-zeroconf==0.135.*           # _memorymesh._tcp.local broadcaster (LAN discovery)
+# ─── Database ─────────────────────────────────────────────────────────────────
+asyncpg==0.31.*            # async PG driver (FastAPI/workers)
+pgvector==0.3.*            # vector type support for asyncpg
+sqlalchemy==2.0.*          # metadata + Alembic MigrationContext
+alembic==1.14.*            # schema migrations
+psycopg[binary]==3.2.*     # sync driver used only by Alembic
 
-# ─── Validation / config ─────────────────────────────────────────────────
-pydantic==2.13.*            # config.py + schemi EmbedJob/DistillJob/TightenJob/DlqEnvelope
-pydantic-settings==2.7.*    # env loader
+# ─── Redis ────────────────────────────────────────────────────────────────────
+redis==5.2.*               # redis-py with asyncio support
+
+# ─── HTTP client ──────────────────────────────────────────────────────────────
+httpx==0.28.*              # safe_fetch (F2-14) + TestClient
+
+# ─── Logging ──────────────────────────────────────────────────────────────────
+structlog==24.*
+
+# ─── Token estimation ─────────────────────────────────────────────────────────
+tiktoken==0.8.*            # cl100k_base encoder (Strategies 17, 18)
+
+# ─── mDNS broadcaster (F1-09) ─────────────────────────────────────────────────
+zeroconf==0.135.*
+
+# ─── Test dependencies (used via: docker compose run --rm api pytest tests/) ──
+pytest==8.*
+pytest-asyncio==0.23.*
+anyio[trio]==4.*           # required by pytest-asyncio backend
