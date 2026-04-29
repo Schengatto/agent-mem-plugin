@@ -43,3 +43,26 @@ class TestGenerateApiKey:
 
         raw, key_hash = generate_api_key()
         assert hash_api_key(raw) == key_hash
+
+
+class TestAuthUser:
+    def test_construction(self):
+        from uuid import uuid4
+
+        from app.schemas.auth import AuthUser
+
+        uid = uuid4()
+        did = uuid4()
+        user = AuthUser(user_id=uid, device_id=did, device_label="laptop")
+        assert user.user_id == uid
+        assert user.device_id == did
+        assert user.device_label == "laptop"
+
+    def test_uuid_fields_are_uuid_type(self):
+        from uuid import UUID, uuid4
+
+        from app.schemas.auth import AuthUser
+
+        user = AuthUser(user_id=uuid4(), device_id=uuid4(), device_label="x")
+        assert isinstance(user.user_id, UUID)
+        assert isinstance(user.device_id, UUID)
