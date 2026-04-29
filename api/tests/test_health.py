@@ -22,20 +22,26 @@ class TestHealth:
 
 
 class TestStubRouters:
-    def test_observations_ping_returns_501(self, client):
-        assert client.get("/api/v1/observations/ping").status_code == 501
+    def test_observations_ping_returns_501(self, authed_client):
+        c, raw_key, _ = authed_client
+        assert c.get("/api/v1/observations/ping", headers={"X-API-Key": raw_key}).status_code == 501
 
-    def test_search_ping_returns_501(self, client):
-        assert client.get("/api/v1/search/ping").status_code == 501
+    def test_search_ping_returns_501(self, authed_client):
+        c, raw_key, _ = authed_client
+        assert c.get("/api/v1/search/ping", headers={"X-API-Key": raw_key}).status_code == 501
 
-    def test_manifest_ping_returns_501(self, client):
-        assert client.get("/api/v1/manifest/ping").status_code == 501
+    def test_manifest_ping_returns_501(self, authed_client):
+        c, raw_key, _ = authed_client
+        assert c.get("/api/v1/manifest/ping", headers={"X-API-Key": raw_key}).status_code == 501
 
-    def test_vocab_ping_returns_501(self, client):
-        assert client.get("/api/v1/vocab/ping").status_code == 501
+    def test_vocab_ping_returns_501(self, authed_client):
+        c, raw_key, _ = authed_client
+        assert c.get("/api/v1/vocab/ping", headers={"X-API-Key": raw_key}).status_code == 501
 
-    def test_sessions_ping_returns_501(self, client):
-        assert client.get("/api/v1/sessions/ping").status_code == 501
+    def test_sessions_ping_returns_501(self, authed_client):
+        c, raw_key, _ = authed_client
+        assert c.get("/api/v1/sessions/ping", headers={"X-API-Key": raw_key}).status_code == 501
 
-    def test_mcp_ping_returns_501(self, client):
-        assert client.get("/mcp/ping").status_code == 501
+    def test_mcp_ping_returns_501(self, authed_client):
+        c, raw_key, _ = authed_client
+        assert c.get("/mcp/ping", headers={"X-API-Key": raw_key}).status_code == 501

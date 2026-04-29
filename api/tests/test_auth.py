@@ -66,3 +66,25 @@ class TestAuthUser:
         user = AuthUser(user_id=uuid4(), device_id=uuid4(), device_label="x")
         assert isinstance(user.user_id, UUID)
         assert isinstance(user.device_id, UUID)
+
+
+class TestAuthMiddleware:
+    def test_missing_key_returns_401(self, client):
+        resp = client.get("/api/v1/observations/ping")
+        assert resp.status_code == 401
+        assert resp.json()["detail"] == "authentication_required"
+
+    def test_bad_key_returns_403(self, authed_client):
+        c, _, _ = authed_client
+        resp = c.get("/api/v1/observations/ping", headers={"X-API-Key": "totally-wrong"})
+        assert resp.status_code == 403
+        assert resp.json()["detail"] == "invalid_or_revoked_key"
+
+    def test_valid_key_passes_through(self, authed_client):
+        c, raw_key, _ = authed_client
+        resp = c.get("/api/v1/observations/ping", headers={"X-API-Key": raw_key})
+        assert resp.status_code == 501  # stub returns 501, but auth succeeded
+
+    def test_health_no_auth_required(self, client):
+        resp = client.get("/health")
+        assert resp.status_code == 200

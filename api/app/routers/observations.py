@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-router = APIRouter(tags=["observations"])
+from app.dependencies import get_current_user
+
+router = APIRouter(tags=["observations"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("/observations/ping")
