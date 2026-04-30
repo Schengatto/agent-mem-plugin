@@ -22,10 +22,6 @@ class TestHealth:
 
 
 class TestStubRouters:
-    def test_observations_ping_returns_501(self, authed_client):
-        c, raw_key, _ = authed_client
-        assert c.get("/api/v1/observations/ping", headers={"X-API-Key": raw_key}).status_code == 501
-
     def test_search_ping_returns_501(self, authed_client):
         c, raw_key, _ = authed_client
         assert c.get("/api/v1/search/ping", headers={"X-API-Key": raw_key}).status_code == 501
